@@ -1,0 +1,128 @@
+spring:
+  application:
+    name: rag-kb
+
+  # ========== ??? ==========
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ragkb
+    username: ${DB_USERNAME:ragkb}
+    password: ${DB_PASSWORD:ragkb123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # ??? validate????????
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # ========== Redis ==========
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+  # ========== ??????? ==========
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 8
+        queue-capacity: 100
+      thread-name-prefix: "index-task-"
+
+  # ========== ?????? ==========
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+  # ========== Spring AI ==========
+  ai:
+    openai:
+      # ?? DashScope ? OpenAI ????
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: qwen-plus
+          temperature: 0.1      # RAG ??????????
+          max-tokens: 2048
+      embedding:
+        base-url: https://dashscope.aliyuncs.com/compatible-mode
+        api-key: ${DASHSCOPE_API_KEY}
+        options:
+          model: text-embedding-v3
+
+# ========== MinIO ==========
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: rag-documents
+
+# ========== Reranker ==========
+reranker:
+  endpoint: https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank
+  api-key: ${DASHSCOPE_API_KEY}
+  model: gte-rerank-v2
+  timeout-ms: 800       # ??????????
+  top-n: 5              # ????? Top 5
+
+# ========== RAG ?? ==========
+rag:
+  chunk:
+    size: 512           # ???????
+    overlap: 64         # ????????
+  retrieval:
+    vector-top-k: 20    # ????????
+    fulltext-top-k: 20  # ????????
+    return-top-n: 5     # RRF ???????? chunk ??
+    min-score: 0.5      # ?????????????? chunk ????
+  context:
+    max-tokens: 3000    # ??????? context Token ?
+  cache:
+    embedding-ttl: 7d   # Embedding ?????
+    query-ttl: 10m      # ?????????
+
+# ========== Sa-Token ==========
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 86400        # Token ??? 1 ?
+  is-concurrent: true
+  is-share: false
+  is-read-header: true  # ? Header ?? token?curl / ?? axios ?? Header?
+
+# ========== ?? ==========
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# ========== ?? ==========
+logging:
+  level:
+    com.agent.ragkb: INFO
+    org.springframework.ai: WARN
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n"
