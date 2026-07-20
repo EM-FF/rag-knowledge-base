@@ -1,5 +1,6 @@
 package com.agent.ragkb.service.splitter;
 
+import com.agent.ragkb.service.ChunkService;
 import com.agent.ragkb.service.loader.ParseResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

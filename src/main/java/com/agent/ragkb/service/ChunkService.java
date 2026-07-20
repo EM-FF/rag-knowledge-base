@@ -1,4 +1,4 @@
-package com.agent.ragkb.service.splitter;
+package com.agent.ragkb.service;
 
 import com.agent.ragkb.service.loader.ParseResult;
 import com.agent.ragkb.service.splitter.*;
