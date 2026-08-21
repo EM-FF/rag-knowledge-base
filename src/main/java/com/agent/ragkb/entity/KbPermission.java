@@ -10,7 +10,9 @@ import java.time.LocalDateTime;
 @Table(name = "kb_permission")
 @Data
 public class KbPermission {
-
+    /**
+     * 权限表-记录"谁"对 哪个“知识库” 有什么权限
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
