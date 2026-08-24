@@ -1,0 +1,47 @@
+### 0. 查询当前用户可访问的知识库列表
+GET http://localhost:8080/api/v1/kb
+Authorization: Bearer <token>
+
+### 1. 创建知识库
+POST http://localhost:8080/api/v1/kb
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "技术文档库",
+  "description": "团队技术规范",
+  "departmentId": "TECH",
+  "isPublic": false
+}
+
+### 2. 上传文档
+POST http://localhost:8080/api/v1/kb/1/documents
+Authorization: Bearer <token>
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="test.pdf"
+Content-Type: application/pdf
+
+< ./test.pdf
+--WebAppBoundary--
+
+### 3. 查询索引状态
+GET http://localhost:8080/api/v1/kb/1/documents/1/status
+Authorization: Bearer <token>
+
+### 4. 查询文档列表
+GET http://localhost:8080/api/v1/kb/1/documents
+Authorization: Bearer <token>
+
+### 5. 下载原始文件
+GET http://localhost:8080/api/v1/kb/1/documents/4/download
+Authorization: Bearer <token>
+
+### 6. 重建索引
+POST http://localhost:8080/api/v1/kb/1/documents/1/reindex
+Authorization: Bearer <token>
+
+### 7. 删除文档
+DELETE http://localhost:8080/api/v1/kb/1/documents/1
+Authorization: Bearer <token>
