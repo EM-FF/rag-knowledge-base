@@ -94,4 +94,15 @@ public interface DocChunkRepository extends JpaRepository<DocChunk, Long> {
     /** 按 ID 列表批量查询（引用溯源时使用） */
     @Query("SELECT c FROM DocChunk c WHERE c.id IN :ids")
     List<DocChunk> findByIds(@Param("ids") List<Long> ids);
+
+    /** 统计文档当前版本的分块数 */
+    @Query("SELECT COUNT(c) FROM DocChunk c WHERE c.docId = :docId AND c.docVersion = :version")
+    long countByDocIdAndDocVersion(@Param("docId") Long docId, @Param("version") Integer version);
+
+    /** 查询知识库下所有文档的分块总数 */
+    @Query("SELECT COUNT(c) FROM DocChunk c WHERE c.kbId = :kbId")
+    long countByKbId(@Param("kbId") Long kbId);
+
+    /** 查询知识库下所有 Chunk（评估数据集标注时使用） */
+    List<DocChunk> findByKbId(@Param("kbId") Long kbId);
 }
