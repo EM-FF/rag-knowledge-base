@@ -25,6 +25,7 @@ public class RagResponse {
     public static class Source {
         private Long chunkId;
         private Long docId;
+        private String docName;     // 文档名称，如"员工手册v2.3.pdf"
         private Integer pageNum;
         private String sectionTitle;
         private String excerpt;        // 相关段落摘要（前200字）

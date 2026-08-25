@@ -3,16 +3,12 @@ package com.agent.ragkb.service;
 import com.agent.ragkb.dto.RagResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-/**
- * 完整 RAG 查询管道（查询改写 + 混合检索 + Reranker + 上下文裁剪 + 生成）。
- * 这是最终版本，后续章节在此基础上添加流式输出、多轮对话等功能。
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -22,18 +18,13 @@ public class FullRagPipeline {
     private final RerankerService rerankerService;
     private final ConfidenceFilter confidenceFilter;
     private final ContextTrimmerService contextTrimmer;
-    private final org.springframework.ai.chat.client.ChatClient chatClient;
+    private final SourceBuilder sourceBuilder;
+    private final HallucinationChecker hallucinationChecker;
+    private final ChatClient chatClient;
 
     @Value("${reranker.top-n:5}")
     private int rerankerTopN;
 
-    /**
-     * 执行完整 RAG 查询管道。
-     *
-     * @param question  用户问题
-     * @param kbIds     知识库 ID 列表
-     * @return 包含答案和来源的结构化响应
-     */
     public RagResponse query(String question, List<Long> kbIds) {
         long pipelineStart = System.currentTimeMillis();
 
@@ -59,12 +50,21 @@ public class FullRagPipeline {
         // Step 4：上下文裁剪（控制 Token 预算）
         List<HybridRetrieverService.ScoredChunk> trimmed = contextTrimmer.trim(filtered);
 
-        // Step 5：生成回答
+        // Step 5：构建带引用编号的 context + 用 RagPromptTemplate 生成 System Prompt
         String context = buildContext(trimmed);
-        String answer = generateAnswer(question, context);
+        String answer = generateAnswer(question, context, trimmed.size());
 
-        // Step 6：组装来源信息
-        List<RagResponse.Source> sources = buildSources(trimmed);
+        // Step 6：用 SourceBuilder 解析引用标注，关联到文档信息
+        List<RagResponse.Source> sources = sourceBuilder.buildSources(answer, trimmed);
+
+        // Step 7：幻觉检测（抽样监控；检测不通过先记日志）
+        if (System.currentTimeMillis() % 5 == 0) {
+            var faithResult = hallucinationChecker.check(question, answer, context);
+            if (!faithResult.isFaithful()) {
+                log.warn("[FullRagPipeline] 幻觉检测不通过：score={}，reason={}",
+                        faithResult.score(), faithResult.reason());
+            }
+        }
 
         long elapsed = System.currentTimeMillis() - pipelineStart;
         log.info("[FullRagPipeline] 完成：question={}，elapsed={}ms，sources={}",
@@ -90,37 +90,13 @@ public class FullRagPipeline {
         return sb.toString().strip();
     }
 
-    private String generateAnswer(String question, String context) {
+    private String generateAnswer(String question, String context, int chunkCount) {
+        String systemPrompt = RagPromptTemplate.buildSystemPrompt(context, chunkCount);
+
         return chatClient.prompt()
-                .system("""
-                        你是企业内部知识库的智能助手。根据以下参考内容回答用户问题。
-                        
-                        规则：
-                        1. 只基于参考内容回答，不使用自身知识推测
-                        2. 参考内容不足时，明确告知"未在知识库找到相关信息"
-                        3. 回答用中文，准确简洁，适当列举要点
-                        4. 禁止编造参考内容之外的信息
-                        
-                        参考内容：
-                        ---
-                        %s
-                        ---
-                        """.formatted(context))
+                .system(systemPrompt)
                 .user(question)
                 .call()
                 .content();
-    }
-
-    private List<RagResponse.Source> buildSources(List<HybridRetrieverService.ScoredChunk> chunks) {
-        return chunks.stream()
-                .map(sc -> RagResponse.Source.builder()
-                        .chunkId(sc.id())
-                        .docId(sc.chunk().getDocId())
-                        .pageNum(sc.chunk().getPageNum())
-                        .sectionTitle(sc.chunk().getSectionTitle())
-                        .excerpt(sc.content().substring(0, Math.min(200, sc.content().length())))
-                        .score(sc.score())
-                        .build())
-                .collect(Collectors.toList());
     }
 }
