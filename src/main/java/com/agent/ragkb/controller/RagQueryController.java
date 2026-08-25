@@ -2,7 +2,7 @@ package com.agent.ragkb.controller;
 
 import com.agent.ragkb.dto.ApiResponse;
 import com.agent.ragkb.dto.RagQueryRequest;
-import com.agent.ragkb.service.RagQueryServiceV2;
+import com.agent.ragkb.service.RagQueryServiceV3;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class RagQueryController {
 
-    private final RagQueryServiceV2 ragQueryService;
+    private final RagQueryServiceV3 ragQueryService;
 
 
     @PostMapping("/query")
