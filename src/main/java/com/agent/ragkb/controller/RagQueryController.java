@@ -2,7 +2,8 @@ package com.agent.ragkb.controller;
 
 import com.agent.ragkb.dto.ApiResponse;
 import com.agent.ragkb.dto.RagQueryRequest;
-import com.agent.ragkb.service.RagQueryServiceV3;
+import com.agent.ragkb.dto.RagResponse;
+import com.agent.ragkb.service.FullRagPipeline;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,11 +12,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class RagQueryController {
 
-    private final RagQueryServiceV3 ragQueryService;
+    private final FullRagPipeline fullRagPipeline;
 
 
     @PostMapping("/query")
-    public ApiResponse<String> query(@RequestBody RagQueryRequest req) {
-        return ApiResponse.ok(ragQueryService.query(req.getQuestion(), req.getKbIds()));
+    public ApiResponse<RagResponse> query(@RequestBody RagQueryRequest req) {
+        return ApiResponse.ok(fullRagPipeline.query(req.getQuestion(), req.getKbIds()));
     }
 }

@@ -65,11 +65,11 @@ spring:
       api-key: ${DASHSCOPE_API_KEY}
       chat:
         options:
-          model: qwen-plus
+          model: qwen3.7-plus
           temperature: 0.1      # RAG ??????????
           max-tokens: 2048
       embedding:
-        base-url: https://dashscope.aliyuncs.com/compatible-mode
+        base-url: https://ws-bilz9ka1il1ukn5f.cn-beijing.maas.aliyuncs.com/api/v1  # https://dashscope.aliyuncs.com/compatible-mode
         api-key: ${DASHSCOPE_API_KEY}
         options:
           model: text-embedding-v3

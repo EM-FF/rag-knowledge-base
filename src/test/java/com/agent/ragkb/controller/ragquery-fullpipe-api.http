@@ -1,0 +1,8 @@
+### RAG 查询：年假怎么申请
+POST http://localhost:8080/api/v1/rag/query
+Content-Type: application/json
+
+{
+  "question": "年假怎么申请？",
+  "kbIds": [1]
+}
