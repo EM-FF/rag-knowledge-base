@@ -1,0 +1,108 @@
+### HR 用户登录
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "hr001",
+  "password": "demo123"
+}
+
+
+### 技术用户登录
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "tech001",
+  "password": "demo123"
+}
+
+
+### 退出登录
+POST http://localhost:8080/api/v1/auth/logout
+Authorization: Bearer 44c45cde-d00d-4f89-b305-4a2e608ef06e
+
+### ① HR 用户登录
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "hr001",
+  "password": "demo123"
+}
+
+> {%
+    client.global.set("hr_token", response.body.data);
+%}
+
+
+### ② HR 查询 HR 知识库
+# HR 部门对 kb=1 有 WRITE 权限
+# 预期：正常返回检索结果
+POST http://localhost:8080/api/v1/chat
+Content-Type: application/json
+Authorization: Bearer {{hr_token}}
+
+{
+  "question": "年假怎么申请？",
+  "kbIds": [1]
+}
+
+
+### ③ HR 查询技术知识库
+# HR 部门对 kb=2 没有权限
+# 预期：返回“无权访问该知识库”
+POST http://localhost:8080/api/v1/chat
+Content-Type: application/json
+Authorization: Bearer {{hr_token}}
+
+{
+  "question": "代码提交规范",
+  "kbIds": [2]
+}
+
+
+### ④ 技术用户登录
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "tech001",
+  "password": "demo123"
+}
+
+> {%
+    client.global.set("tech_token", response.body.data);
+%}
+
+
+### ⑤ TECH 查询技术知识库
+# TECH 部门对 kb=2 有 WRITE 权限
+# 预期：正常返回
+POST http://localhost:8080/api/v1/chat
+Content-Type: application/json
+Authorization: Bearer {{tech_token}}
+
+{
+  "question": "Commit Message 格式",
+  "kbIds": [2]
+}
+
+
+### ⑥ TECH 查询 HR 知识库
+# TECH 部门对 kb=1 有 READ 权限
+# 预期：可以正常查询
+POST http://localhost:8080/api/v1/chat
+Content-Type: application/json
+Authorization: Bearer {{tech_token}}
+
+{
+  "question": "年假怎么申请？",
+  "kbIds": [1]
+}
+
+
+### ⑦ 不带 Token 访问
+# 预期：Sa-Token Filter 拦截
+# 预期返回：{"code":401,"message":"请先登录"}
+GET http://localhost:8080/api/v1/kb/1/documents

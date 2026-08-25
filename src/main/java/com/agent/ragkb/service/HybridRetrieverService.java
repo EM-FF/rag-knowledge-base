@@ -1,7 +1,11 @@
 package com.agent.ragkb.service;
 
 import com.agent.ragkb.entity.DocChunk;
+import com.agent.ragkb.exception.BizException;
 import com.agent.ragkb.repository.DocChunkRepository;
+import com.agent.ragkb.repository.KbPermissionRepository;
+import com.agent.ragkb.repository.KnowledgeBaseRepository;
+import com.agent.ragkb.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +22,9 @@ public class HybridRetrieverService {
     private final EmbeddingService embeddingService;
     private final DocChunkRepository chunkRepository;
     private final TsQueryBuilder tsQueryBuilder;
+    // 在 HybridRetrieverService 类中，新增以下两个 final 字段：
+    private final KnowledgeBaseRepository kbRepository;
+    private final KbPermissionRepository permissionRepository;
 
     @Value("${rag.retrieval.vector-top-k:20}")
     private int vectorTopK;
@@ -67,6 +74,51 @@ public class HybridRetrieverService {
 
         log.info("[HybridRetriever] RRF 融合后 TopN={}，返回 {} 条", topN, topResults.size());
         return topResults;
+    }
+
+    /**
+     * 权限安全的混合检索——在调用前过滤 kbIds。
+     * 用户传入 kbIds，只有实际有权限的才会被检索。
+     */
+    public List<ScoredChunk> retrieveWithPermissionCheck(
+            String question, List<Long> requestedKbIds, int topN) {
+
+        List<Long> allowedKbIds = filterAllowedKbIds(requestedKbIds);
+
+        if (allowedKbIds.isEmpty()) {
+            throw BizException.forbidden("您对所请求的知识库没有访问权限");
+        }
+
+        if (allowedKbIds.size() < requestedKbIds.size()) {
+            List<Long> denied = requestedKbIds.stream()
+                    .filter(id -> !allowedKbIds.contains(id))
+                    .toList();
+            log.warn("[权限过滤] userId={} 无权访问 kbIds={}，已过滤",
+                    UserContext.getUserId(), denied);
+        }
+
+        return retrieve(question, allowedKbIds, topN);
+    }
+
+    private List<Long> filterAllowedKbIds(List<Long> kbIds) {
+        if (UserContext.isAdmin()) return kbIds;
+
+        String userId = String.valueOf(UserContext.getUserId());
+        String deptId = UserContext.getDepartmentId();
+
+        return kbIds.stream()
+                .filter(kbId -> {
+                    boolean isPublic = kbRepository.findById(kbId)
+                            .map(kb -> kb.getIsPublic())
+                            .orElse(false);
+                    if (isPublic) return true;
+
+                    return permissionRepository.existsByKbIdAndSubjectTypeAndSubjectId(
+                            kbId, "USER", userId)
+                            || permissionRepository.existsByKbIdAndSubjectTypeAndSubjectId(
+                            kbId, "DEPARTMENT", deptId);
+                })
+                .toList();
     }
 
     /**
