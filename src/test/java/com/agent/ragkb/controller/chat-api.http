@@ -1,0 +1,13 @@
+### Chat 查询：年假怎么申请
+POST http://localhost:8080/api/v1/chat
+Content-Type: application/json
+
+{
+  "question": "年假怎么申请？",
+  "kbIds": [1]
+}
+
+### Chat 流式查询：年假怎么申请
+GET http://localhost:8080/api/v1/chat/stream?question=%E5%B9%B4%E5%81%87%E6%80%8E%E4%B9%88%E7%94%B3%E8%AF%B7&kbIds=1
+Accept: text/event-stream
+Accept-Charset: UTF-8
