@@ -1,6 +1,7 @@
 package com.agent.ragkb.service;
 
 import com.agent.ragkb.entity.KnowledgeBase;
+import com.agent.ragkb.exception.BizException;
 import com.agent.ragkb.repository.KbPermissionRepository;
 import com.agent.ragkb.repository.KnowledgeBaseRepository;
 import com.agent.ragkb.security.UserContext;
@@ -34,7 +35,7 @@ public class PermissionService {
                 kbId, "DEPARTMENT", deptId);
 
         if (!hasPermission) {
-            throw new RuntimeException("无权访问该知识库");
+            throw BizException.forbidden("无权访问该知识库");
         }
     }
 
