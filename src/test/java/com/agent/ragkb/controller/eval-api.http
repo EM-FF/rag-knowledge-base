@@ -1,0 +1,23 @@
+### ① Admin 用户登录
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "demo123"
+}
+
+> {%
+    client.global.set("admin_token", response.body.data);
+%}
+
+
+### ② 触发知识库 1 的评估
+# version 用于标识本次评估配置，方便后续对比
+POST http://localhost:8080/api/v1/eval/1/run?version=v1_hybrid_reranker
+Authorization: Bearer {{admin_token}}
+
+
+### ③ 查看知识库 1 的历史评估记录
+GET http://localhost:8080/api/v1/eval/1/history
+Authorization: Bearer {{admin_token}}
